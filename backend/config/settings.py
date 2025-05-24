@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders', # Adicionado
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,6 +43,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware', # Adicionado
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -126,3 +128,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Configuração para servir arquivos de mídia (uploads dos usuários)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media' # BASE_DIR já é definido no topo do settings.py
+
+# Configurações CORS
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # Endereço do seu frontend React em desenvolvimento
+    "http://127.0.0.1:3000",
+    # Adicione outros domínios se necessário (ex: o domínio de produção do seu frontend)
+]
+
+# Opcional: se você precisar permitir todos os domínios (menos seguro, use com cautela)
+# CORS_ORIGIN_ALLOW_ALL = True
+
+# Opcional: para permitir cookies e credenciais
+# CORS_ALLOW_CREDENTIALS = True
