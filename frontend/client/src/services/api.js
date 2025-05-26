@@ -41,3 +41,5 @@ export const updateResume = (id, resumeData) => {
 export const deleteResume = (id) => {
     return apiClient.delete('resumes/${id}/');
 }
+
+export default apiClient;
