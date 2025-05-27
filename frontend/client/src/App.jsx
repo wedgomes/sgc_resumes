@@ -1,60 +1,110 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import ResumeForm from './components/ResumeForm';
+// src/App.js
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { ThemeProvider, createTheme, CssBaseline } from '@mui/material'; // Para tema global e baseline CSS
+
+// Componentes de página e layout
+import MainLayout from './components/MainLayout';
 import ResumeList from './components/ResumeList';
-import { fetchResumes } from './services/api'; // Usaremos para recarregar a lista
-import './App.css'
+import ResumeForm from './components/ResumeForm';
+import './App.css'; // Seu CSS global, se houver
 
-function App() {
-  const [editingResumeId, setEditingResumeId] = useState(null);
-  // Estado para forçar a atualização da lista, se necessário.
-  // ou melhor, passar a função de recarregar para o form
-  const [refreshListKey, setRefreshListKey] = useState(0); // Apenas para o ResumeList
+// Importação de Ícones para a navegação (do @mui/icons-material)
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+// Importe outros ícones que desejar
 
-  // Para o ResumeList ser uma dependência do useEffect do ResumeList,
-  // vamos apenas passar uma função que o ResumeList possa chamar para recarregar
-  // No entanto, o ResumeList já tem seu próprio botão de "Atualizar Lista" e
-  // recarrega após a exclusão.
-  // O principal é que o ResumeForm avise o App para limpar o formulário de edição
-  // e potencialmente avisar o ResumeList.
+// --- ETAPA 2: DEFINIÇÕES DIRETAMENTE NO APP.JS ---
 
-  const handleFormSubmit = useCallback(() => {
-    console.log("Formulário submetido, atualizando lista...");
-    setEditingResumeId(null); // Sai do modo de edição
-    // Para atualizar a lista, podemos apenas mudar uma 'chave' ou ter o ResumeList
-    // expor uma função de recarga, mas para simplificar, o ResumeList já se atualiza
-    // após deleção e tem um botão de refresh. O App pode forçar um re-render da lista
-    // se passarmos uma prop que muda.
-    setRefreshListKey(prevKey => prevKey + 1); // Força o ResumeList a recarregar via prop (ou o próprio list pode buscar)
-  }, []);
+// 1. Itens de Navegação Principal (para o AppProvider do Toolpad)
+const mainNavigation = [
+  {
+    segment: '/', // Corresponde ao 'path' da rota no React Router
+    title: 'Listar Currículos',
+    icon: <ListAltIcon />,
+  },
+  {
+    segment: '/add', // Corresponde ao 'path' da rota no React Router
+    title: 'Adicionar Currículo',
+    icon: <AddCircleOutlineIcon />,
+  },
+  // Adicione mais links aqui se necessário (ex: /configuracoes)
+  // Lembre-se de criar a <Route> correspondente abaixo
+];
 
-  const handleEdit = (id) => {
-    setEditingResumeId(id);
+// 2. Definição do Tema MUI (Material-UI)
+const appTheme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2', // Cor primária (azul MUI padrão)
+    },
+    secondary: {
+      main: '#dc004e', // Cor secundária
+    },
+    // Você pode adicionar mais customizações de paleta aqui (background, text, etc.)
+  },
+  typography: {
+    // Customizações de tipografia aqui
+  },
+  // Configurações do exemplo do Toolpad (ajuste se necessário)
+  cssVariables: {
+    colorSchemeSelector: 'data-toolpad-color-scheme',
+  },
+  colorSchemes: { light: true, dark: true },
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 600, // O padrão do MUI para md é 900. Este é do exemplo do Toolpad.
+      lg: 1200,
+      xl: 1536,
+    },
+  },
+  // Você pode adicionar components overrides aqui para estilizar componentes MUI globalmente
+});
+
+// Componente Wrapper para ResumeForm (para lidar com navegação pós-submit/cancel)
+// Este pode ficar aqui ou ser movido para seu próprio arquivo se preferir.
+const ResumeFormWrapper = ({ mode }) => {
+  const navigate = useNavigate();
+
+  const handleFormSubmitOrCancel = () => {
+    navigate('/'); // Navega de volta para a lista de currículos
   };
 
-  const handleCancelEdit = () => {
-    setEditingResumeId(null);
-  }
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Sistema de Gerenciamento de Curriculos</h1>
-      </header>
+    <ResumeForm
+      mode={mode}
+      onFormSubmit={handleFormSubmitOrCancel}
+      onCancelEdit={handleFormSubmitOrCancel}
+    />
+  );
+};
 
-      <main>
-        <ResumeForm 
-          key={editingResumeId || 'new'} // Para resetar o formulário ao mudar de edição para novo
-          resumeId={editingResumeId}
-          onFormSubmit={handleFormSubmit}
-          onCancelEdit={handleCancelEdit}
-        />
-        <ResumeList 
-          key={refreshListKey} // Para que o App possa forçar o refresh
-          onEdit={handleEdit}
-        />
-      </main>
-    </div>
+// Componente Principal da Aplicação
+function App() {
+  return (
+    <ThemeProvider theme={appTheme}> {/* Aplica o tema MUI globalmente */}
+      <CssBaseline /> {/* Normaliza estilos CSS e aplica cor de fundo do tema */}
+      <Router> {/* BrowserRouter envolve toda a aplicação para habilitar rotas */}
+        <MainLayout navigationItems={mainNavigation} theme={appTheme}> {/* Passa a navegação e o tema para o MainLayout */}
+          {/* As rotas definem qual componente de página é renderizado dentro do MainLayout */}
+          <Routes>
+            <Route path="/" element={<ResumeList />} />
+            <Route path="/add" element={<ResumeFormWrapper mode="add" />} />
+            <Route path="/edit/:resumeId" element={<ResumeFormWrapper mode="edit" />} />
+            {/* Exemplo de rota "Não Encontrado" (opcional) */}
+            {/* <Route path="*" element={
+              <div style={{ textAlign: 'center', marginTop: '50px' }}>
+                <h2>Página Não Encontrada (404)</h2>
+                <p>O caminho que você tentou acessar não existe.</p>
+              </div>
+            } /> */}
+          </Routes>
+        </MainLayout>
+      </Router>
+    </ThemeProvider>
   );
 }
 
-export default App
+export default App;
