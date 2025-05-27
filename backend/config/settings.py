@@ -134,6 +134,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Endereço do seu frontend React em desenvolvimento
     "http://127.0.0.1:3000",
     # Adicione outros domínios se necessário (ex: o domínio de produção do seu frontend)
+    "http://localhost:5173",    # Origem do seu frontend React (Vite)
+    "http://127.0.0.1:5173",  # Adicione também com 127.0.0.1 para garantir
 ]
 
 # Opcional: se você precisar permitir todos os domínios (menos seguro, use com cautela)

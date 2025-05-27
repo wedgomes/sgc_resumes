@@ -6,7 +6,7 @@ class ResumeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Resume
-        fields =[
+        fields = [
             'id',
             'full_name',
             'email',
@@ -15,19 +15,24 @@ class ResumeSerializer(serializers.ModelSerializer):
             'education_summary',
             'experience_summary',
             'skills_summary',
-            'full_text_content', # Permitir leitura, mas o preenchimento será via lógica de parsing
-            'original_file', # Para upload
-            'original_file_url', # Para exibir o link do arquivo
+            'full_text_content',
+            'original_file',       # Campo para upload/atualização
+            'original_file_url',   # Campo apenas para leitura da URL
             'source',
             'status',
             'notes',
             'uploaded_at',
             'updated_at',
         ]
-        read_only_fields = ('id', 'uploaded_at', 'updatedat', 'full_text_content', 'original_file_url')
+        read_only_fields = ('id', 'uploaded_at', 'updated_at', 'full_text_content', 'original_file_url')
+
+        # ADICIONE ESTA SEÇÃO:
+        extra_kwargs = {
+            'original_file': {'required': False, 'allow_null': True, 'allow_empty_file': True}
+        }
 
     def get_original_file_url(self, obj):
         request = self.context.get('request')
-        if obj.original_file and request:
+        if obj.original_file and hasattr(obj.original_file, 'url') and request:
             return request.build_absolute_uri(obj.original_file.url)
         return None
