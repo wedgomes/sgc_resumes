@@ -2,11 +2,23 @@
 import React, { useState, useEffect } from "react";
 import { fetchResumes, deleteResume } from "../services/api";
 import { useNavigate } from 'react-router-dom';
-import { Button, List, ListItem, ListItemText, Typography, CircularProgress, Alert, Paper, Box } from '@mui/material';
+import {
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  Avatar,
+  Typography,
+  CircularProgress,
+  Alert,
+  Paper,
+  Box,
+  Divider // Importar Divider
+} from '@mui/material';
+import PersonIcon from '@mui/icons-material/Person'; // Ícone para o Avatar
 
 // --- Mapas e Funções Auxiliares ---
-// (Defina estes com base nos 'choices' do seu modelo Django)
-
 const statusDisplayMap = {
   pending_review: 'Pendente de Revisão',
   under_review: 'Em Revisão',
@@ -14,7 +26,6 @@ const statusDisplayMap = {
   interview_scheduled: 'Entrevista Agendada',
   rejected: 'Rejeitado',
   hired: 'Contratado',
-  // Adicione outros status conforme necessário
 };
 
 const sourceDisplayMap = {
@@ -22,22 +33,19 @@ const sourceDisplayMap = {
   physical: 'Físico (Digitalizado)',
   manual: 'Cadastro Manual',
   other: 'Outro',
-  // Adicione outras origens conforme necessário
 };
 
-// Função para formatar valores genéricos ou como fallback
 const formatGenericValue = (value, defaultValue = 'N/A') => {
   if (!value) return defaultValue;
   if (typeof value === 'string') {
-    // Ex: 'some_value' -> 'Some Value'
     return value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
-  return String(value); // Garante que é uma string para exibição
+  return String(value);
 };
 
 // Estilos para os dados
-const presentDataStyle = { color: '#333333' };
-const missingDataStyle = { color: 'grey', fontStyle: 'italic' };
+const presentDataStyle = { color: 'text.primary' }; // Usar cores do tema
+const missingDataStyle = { color: 'text.secondary', fontStyle: 'italic' }; // Usar cores do tema
 
 // --- Componente Principal ---
 const ResumeList = () => {
@@ -46,57 +54,38 @@ const ResumeList = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Função para carregar os currículos da API
   const loadResumes = async () => {
     setIsLoading(true);
     setError(null);
-    // console.log("--- FRONTEND (ResumeList): Iniciando loadResumes ---");
     try {
       const response = await fetchResumes();
-      // console.log("--- FRONTEND (ResumeList): Resposta da API (fetchResumes):", response);
-      // console.log("--- FRONTEND (ResumeList): Dados da resposta da API (response.data):", response.data);
-
       if (Array.isArray(response.data)) {
         setResumes(response.data);
-        // console.log("--- FRONTEND (ResumeList): Estado 'resumes' atualizado com (array direto):", response.data);
       } else if (response.data && Array.isArray(response.data.results)) {
-        // Comum se a API Django REST Framework usar paginação
-        // console.log("--- FRONTEND (ResumeList): Detectada resposta paginada. Usando response.data.results.");
         setResumes(response.data.results);
-        // console.log("--- FRONTEND (ResumeList): Estado 'resumes' atualizado com (paginado):", response.data.results);
       } else {
-        // console.error("--- FRONTEND (ResumeList): response.data não é um array e não tem a propriedade 'results' como array. Verifique a estrutura da resposta da API.", response.data);
+        console.error("Formato de dados inesperado da API.", response.data);
         setError("Formato de dados inesperado da API.");
-        setResumes([]); // Define como array vazio para evitar erros no .map
+        setResumes([]);
       }
     } catch (err) {
-      // console.error("--- FRONTEND (ResumeList): Erro ao buscar currículos (dentro do catch):", err);
-      if (err.response) {
-        // console.error("--- FRONTEND (ResumeList): Detalhes do erro da API:", err.response.data);
-        // console.error("--- FRONTEND (ResumeList): Status do erro da API:", err.response.status);
-      }
+      console.error("Erro ao buscar currículos: ", err);
       setError("Falha ao carregar currículos. Verifique o console para mais detalhes.");
       setResumes([]);
     } finally {
       setIsLoading(false);
-      // console.log("--- FRONTEND (ResumeList): loadResumes finalizado ---");
     }
   };
 
   useEffect(() => {
     loadResumes();
-  }, []); // Carrega na montagem inicial do componente
-
-  // Log para observar mudanças no estado 'resumes' (opcional, para depuração)
-  useEffect(() => {
-    // console.log("--- FRONTEND (ResumeList): Estado 'resumes' efetivamente mudou para:", resumes);
-  }, [resumes]);
+  }, []);
 
   const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este currículo?')) {
       try {
         await deleteResume(id);
-        loadResumes(); // Recarrega a lista após a exclusão
+        loadResumes();
       } catch (localError) {
         console.error("Erro ao excluir currículo: ", localError);
         alert("Falha ao excluir currículo.");
@@ -112,100 +101,101 @@ const ResumeList = () => {
   if (error) return <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>;
 
   return (
-    <Paper elevation={2} sx={{ p: 3, mt: 2 }}>
-      <Typography variant="h4" component="h2" gutterBottom>
+    <Paper elevation={2} sx={{ p: { xs: 1, sm: 2, md: 3 }, mt: 2, width: '100%' }} > {/* Ajuste de padding responsivo */}
+      <Typography variant="h4" component="h2" gutterBottom sx={{ textAlign: 'center', mb:3 }}>
         Lista de Currículos
       </Typography>
-      {resumes.length === 0 && !isLoading && <Typography>Nenhum currículo cadastrado.</Typography>}
-      <List>
-        {resumes.map(resume => {
+      {resumes.length === 0 && !isLoading && <Typography sx={{textAlign: 'center'}}>Nenhum currículo cadastrado.</Typography>}
+      
+      {/* Lista principal com largura total */}
+      <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
+        {resumes.map((resume, index) => {
           // Lógica para formatar e exibir a data
           let displayDate = 'N/A';
           let effectiveDateStyle = missingDataStyle;
           if (resume.uploaded_at) {
             try {
-              displayDate = new Date(resume.uploaded_at).toLocaleString('pt-BR'); // Formatado para pt-BR
+              displayDate = new Date(resume.uploaded_at).toLocaleString('pt-BR');
               effectiveDateStyle = presentDataStyle;
             } catch (e) {
-              console.warn("Data inválida para o currículo:", resume.id, resume.uploaded_at);
               displayDate = 'Data inválida';
             }
           }
 
-          // Obter o texto de exibição para status e origem
           const displayStatus = statusDisplayMap[resume.status] || formatGenericValue(resume.status, 'N/A');
           const displaySource = sourceDisplayMap[resume.source] || formatGenericValue(resume.source, 'N/A');
 
           return (
-            <ListItem
-              key={resume.id}
-              divider
-              sx={{
-                mb: 2, p: 2, backgroundColor: '#f9f9f9', borderRadius: '4px',
-                display: 'flex', flexDirection: 'column', alignItems: 'flex-start'
-              }}
-            >
-              <Typography variant="h6" component="h3" sx={!resume.full_name ? missingDataStyle : presentDataStyle}>
-                {resume.full_name || 'Nome não informado'}
-              </Typography>
-              <ListItemText sx={{ width: '100%'}} // Garante que ListItemText ocupe a largura para alinhar o conteúdo
-                primary={
-                  <>
-                    <Typography component="div" display="block" sx={{mb: 0.5}}> {/* Usando div e mb para espaçamento */}
-                      <strong style={presentDataStyle}>Email: </strong>
-                      <span style={!resume.email ? missingDataStyle : presentDataStyle}>
-                        {resume.email || 'N/A'}
-                      </span>
-                    </Typography>
-                    <Typography component="div" display="block" sx={{mb: 0.5}}>
-                      <strong style={presentDataStyle}>Telefone: </strong>
-                      <span style={!resume.phone ? missingDataStyle : presentDataStyle}>
-                        {resume.phone || 'N/A'}
-                      </span>
-                    </Typography>
-                    <Typography component="div" display="block" sx={{mb: 0.5}}>
-                      <strong style={presentDataStyle}>Status: </strong>
-                      <span style={!resume.status ? missingDataStyle : presentDataStyle}>
-                        {displayStatus}
-                      </span>
-                    </Typography>
-                    <Typography component="div" display="block" sx={{mb: 0.5}}>
-                      <strong style={presentDataStyle}>Origem: </strong>
-                      <span style={!resume.source ? missingDataStyle : presentDataStyle}>
-                        {displaySource}
-                      </span>
-                    </Typography>
-                    {resume.original_file_url && (
-                      <Typography component="div" display="block" sx={{mb: 0.5, ...presentDataStyle}}>
-                        <a href={resume.original_file_url} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff' }}>
-                          Ver Arquivo Original
-                        </a>
-                      </Typography>
-                    )}
-                    <Typography component="div" display="block" sx={{ fontStyle: 'italic' }}>
-                      <em style={presentDataStyle}>Enviado em: </em>
-                      <span style={effectiveDateStyle}>
-                        {displayDate}
-                      </span>
-                    </Typography>
-                  </>
+            <React.Fragment key={resume.id}>
+              <ListItem 
+                alignItems="flex-start"
+                secondaryAction={
+                  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 1, pl: 1 }}>
+                    <Button variant="outlined" size="small" onClick={() => handleEdit(resume.id)} sx={{width: {xs: '100%', sm: 'auto'}}}>
+                      Editar
+                    </Button>
+                    <Button variant="outlined" size="small" color="error" onClick={() => handleDelete(resume.id)} sx={{width: {xs: '100%', sm: 'auto'}}}>
+                      Excluir
+                    </Button>
+                  </Box>
                 }
-              />
-              <Box sx={{ mt: 2, width: '100%', display: 'flex', justifyContent: 'flex-start' }}> {/* Botões alinhados à esquerda */}
-                <Button variant="outlined" onClick={() => handleEdit(resume.id)} sx={{ mr: 1 }}>
-                  Editar
-                </Button>
-                <Button variant="outlined" color="error" onClick={() => handleDelete(resume.id)}>
-                  Excluir
-                </Button>
-              </Box>
-            </ListItem>
+                sx={{pr: {xs: 1, sm: 20} }} // Adiciona padding à direita para não sobrepor botões em telas menores
+              >
+                <ListItemAvatar>
+                  <Avatar> {/* Você pode adicionar lógica para src={resume.fotoUrl} se tiver */}
+                    <PersonIcon /> {/* Ícone genérico */}
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={
+                    <Typography variant="h6" component="div" sx={!resume.full_name ? missingDataStyle : presentDataStyle}>
+                      {resume.full_name || 'Nome não informado'}
+                    </Typography>
+                  }
+                  secondary={
+                    <React.Fragment>
+                      <Typography component="span" variant="body2" display="block" sx={!resume.email ? missingDataStyle : presentDataStyle}>
+                        <strong>Email:</strong> {resume.email || 'N/A'}
+                      </Typography>
+                      <Typography component="span" variant="body2" display="block" sx={!resume.phone ? missingDataStyle : presentDataStyle}>
+                        <strong>Telefone:</strong> {resume.phone || 'N/A'}
+                      </Typography>
+                      <Typography component="span" variant="body2" display="block" sx={!resume.status ? missingDataStyle : presentDataStyle}>
+                        <strong>Status:</strong> {displayStatus}
+                      </Typography>
+                      <Typography component="span" variant="body2" display="block" sx={!resume.source ? missingDataStyle : presentDataStyle}>
+                        <strong>Origem:</strong> {displaySource}
+                      </Typography>
+                      {resume.original_file_url && (
+                        <Typography component="span" variant="body2" display="block">
+                          <a href={resume.original_file_url} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff' }}>
+                            Ver Arquivo Original
+                          </a>
+                        </Typography>
+                      )}
+                       <Typography component="span" variant="body2" display="block" sx={{ fontStyle: 'italic', mt: 0.5 }}>
+                        <em style={presentDataStyle}>Enviado em: </em>
+                        <span style={effectiveDateStyle}>
+                          {displayDate}
+                        </span>
+                      </Typography>
+                    </React.Fragment>
+                  }
+                  primaryTypographyProps={{ component: 'div', sx: { mb: 1 } }} // Margem abaixo do nome
+                  secondaryTypographyProps={{ component: 'div' }} // Garante que o secondary seja um div para block display
+                />
+              </ListItem>
+              {/* Adiciona Divider entre os itens, exceto para o último */}
+              {/* {index < resumes.length - 1 && <Divider variant="inset" component="li" />} */}
+            </React.Fragment>
           );
         })}
       </List>
-      <Button variant="contained" onClick={loadResumes} disabled={isLoading} sx={{ mt: 2 }}>
-        Atualizar Lista
-      </Button>
+      {/* <Box sx={{display: 'flex', justifyContent: 'center', mt: 3}}>
+        <Button variant="contained" onClick={loadResumes} disabled={isLoading}>
+          Atualizar Lista
+        </Button>
+      </Box> */}
     </Paper>
   );
 };
