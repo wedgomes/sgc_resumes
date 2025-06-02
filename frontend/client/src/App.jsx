@@ -1,60 +1,89 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import ResumeForm from './components/ResumeForm';
+// src/App.js
+import React from 'react';
+// Adicione Navigate para o redirecionamento
+import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+
+// Componentes de página e layout
+import MainLayout from './components/MainLayout';
 import ResumeList from './components/ResumeList';
-import { fetchResumes } from './services/api'; // Usaremos para recarregar a lista
-import './App.css'
+import ResumeForm from './components/ResumeForm';
+import './App.css';
 
-function App() {
-  const [editingResumeId, setEditingResumeId] = useState(null);
-  // Estado para forçar a atualização da lista, se necessário.
-  // ou melhor, passar a função de recarregar para o form
-  const [refreshListKey, setRefreshListKey] = useState(0); // Apenas para o ResumeList
+// Importação de Ícones
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 
-  // Para o ResumeList ser uma dependência do useEffect do ResumeList,
-  // vamos apenas passar uma função que o ResumeList possa chamar para recarregar
-  // No entanto, o ResumeList já tem seu próprio botão de "Atualizar Lista" e
-  // recarrega após a exclusão.
-  // O principal é que o ResumeForm avise o App para limpar o formulário de edição
-  // e potencialmente avisar o ResumeList.
+// 1. Itens de Navegação Principal
+const mainNavigation = [
+  {
+    segment: 'list', // Correto, pois a lista está em /list
+    title: 'Listar Currículos',
+    icon: <ListAltIcon />,
+  },
+  {
+    segment: 'add',
+    title: 'Adicionar Currículo',
+    icon: <AddCircleOutlineIcon />,
+  },
+];
 
-  const handleFormSubmit = useCallback(() => {
-    console.log("Formulário submetido, atualizando lista...");
-    setEditingResumeId(null); // Sai do modo de edição
-    // Para atualizar a lista, podemos apenas mudar uma 'chave' ou ter o ResumeList
-    // expor uma função de recarga, mas para simplificar, o ResumeList já se atualiza
-    // após deleção e tem um botão de refresh. O App pode forçar um re-render da lista
-    // se passarmos uma prop que muda.
-    setRefreshListKey(prevKey => prevKey + 1); // Força o ResumeList a recarregar via prop (ou o próprio list pode buscar)
-  }, []);
+// 2. Definição do Tema MUI
+const appTheme = createTheme({
+  palette: { /* ... suas definições de paleta ... */ 
+    primary: { main: '#1976d2' },
+    secondary: { main: '#dc004e' },
+  },
+  typography: { /* ... */ },
+  cssVariables: { colorSchemeSelector: 'data-toolpad-color-scheme' },
+  colorSchemes: { light: true, dark: true },
+  breakpoints: { values: { xs: 0, sm: 600, md: 600, lg: 1200, xl: 1536 } },
+});
 
-  const handleEdit = (id) => {
-    setEditingResumeId(id);
+// Componente Wrapper para ResumeForm
+const ResumeFormWrapper = ({ mode }) => {
+  const navigate = useNavigate();
+
+  const handleFormSubmitOrCancel = () => {
+    navigate('/'); // CORRIGIDO: Navega de volta para a lista de currículos em /list
   };
 
-  const handleCancelEdit = () => {
-    setEditingResumeId(null);
-  }
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Sistema de Gerenciamento de Curriculos</h1>
-      </header>
+    <ResumeForm
+      mode={mode}
+      onFormSubmit={handleFormSubmitOrCancel}
+      onCancelEdit={handleFormSubmitOrCancel}
+    />
+  );
+};
 
-      <main>
-        <ResumeForm 
-          key={editingResumeId || 'new'} // Para resetar o formulário ao mudar de edição para novo
-          resumeId={editingResumeId}
-          onFormSubmit={handleFormSubmit}
-          onCancelEdit={handleCancelEdit}
-        />
-        <ResumeList 
-          key={refreshListKey} // Para que o App possa forçar o refresh
-          onEdit={handleEdit}
-        />
-      </main>
-    </div>
+// Componente Principal da Aplicação
+function App() {
+  return (
+    <ThemeProvider theme={appTheme}>
+      <CssBaseline />
+      <Router>
+        <MainLayout navigationItems={mainNavigation} theme={appTheme}>
+          <Routes>
+            {/* ADICIONADO: Redireciona da rota raiz "/" para "/list" */}
+            <Route path="/" element={<Navigate replace to="/list" />} />
+
+            <Route path="/list" element={<ResumeList />} />
+            <Route path="/add" element={<ResumeFormWrapper mode="add" />} />
+            <Route path="/edit/:resumeId" element={<ResumeFormWrapper mode="edit" />} />
+            
+            {/* Exemplo de rota "Não Encontrado" (opcional) */}
+            <Route path="*" element={
+              <div style={{ textAlign: 'center', marginTop: '50px' }}>
+                <h2>Página Não Encontrada (404)</h2>
+                <p>O caminho que você tentou acessar não existe.</p>
+              </div>
+            } />
+          </Routes>
+        </MainLayout>
+      </Router>
+    </ThemeProvider>
   );
 }
 
-export default App
+export default App;
