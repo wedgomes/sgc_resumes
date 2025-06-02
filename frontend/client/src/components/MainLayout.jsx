@@ -12,13 +12,13 @@ const MainLayout = ({ children, navigationItems, theme }) => {
   const toolpadRouter = React.useMemo(() => ({
     pathname: location.pathname,
     navigate: (path) => {
-      console.log(`--- MainLayout/toolpadRouter: Tentando navegar para o path (segmento): '${path}' ---`);
+      // console.log(`--- MainLayout/toolpadRouter: Tentando navegar para o path (segmento): '${path}' ---`);
       navigate(path);
     },
   }), [location.pathname, navigate]);
 
   // ADICIONE ESTE LOG:
-  console.log("--- MainLayout: Prop 'navigationItems' recebida:", JSON.stringify(navigationItems, null, 2));
+  // console.log("--- MainLayout: Prop 'navigationItems' recebida:", JSON.stringify(navigationItems, null, 2));
 
   return (
     <AppProvider
@@ -26,10 +26,15 @@ const MainLayout = ({ children, navigationItems, theme }) => {
       router={toolpadRouter}
       theme={theme}
     >
-      <DashboardLayout title="Sistema de Gestão de Currículos"> {/* Adicionando o título aqui */}
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <DashboardLayout 
+        title="Sistema de Gestão de Currículos"
+        // contentMaxWidth={false} 
+        // fluid={true}
+        fullWidthContent={true} 
+      > {/* Adicionando o título aqui */}
+        <div maxWidth={false} sx={{ mt: 4, mb: 4, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
           {children}
-        </Container>
+        </div>
       </DashboardLayout>
     </AppProvider>
   );
