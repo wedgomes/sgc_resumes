@@ -25,6 +25,7 @@ const MainLayout = ({ children, navigationItems, theme }) => {
       navigation={navigationItems} // Verifique se esta prop está correta
       router={toolpadRouter}
       theme={theme}
+      title="Sistema de Gestão de Currículos"
     >
       <DashboardLayout 
         title="Sistema de Gestão de Currículos"
@@ -32,7 +33,7 @@ const MainLayout = ({ children, navigationItems, theme }) => {
         // fluid={true}
         fullWidthContent={true} 
       > {/* Adicionando o título aqui */}
-        <div maxWidth={false} sx={{ mt: 4, mb: 4, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+        <div sx={{ maxWidth: (theme), mt: 4, mb: 4, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
           {children}
         </div>
       </DashboardLayout>
