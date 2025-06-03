@@ -7,9 +7,16 @@ const apiClient = axios.create({
   },
 });
 
-export const fetchResumes = () => {
-  // CORRIGIDO: Removida a barra inicial para evitar duplicidade com a baseURL
-  return apiClient.get('resumes/');
+// ATUALIZADO: fetchResumes agora aceita um número de página
+export const fetchResumes = (page = 1) => { // Default para a página 1
+  return apiClient.get('resumes/', {
+    params: {
+      page: page, // Envia ?page=X na URL
+      // Se sua API usar um nome diferente para o parâmetro de página, ajuste aqui.
+      // Se sua API tiver um tamanho de página fixo e você precisar enviá-lo, adicione:
+      // page_size: ITEMS_PER_PAGE, (onde ITEMS_PER_PAGE é o número de itens por página)
+    }
+  });
 };
 
 export const createResume = (resumeData) => {

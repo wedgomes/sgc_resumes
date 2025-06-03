@@ -143,3 +143,9 @@ CORS_ALLOWED_ORIGINS = [
 
 # Opcional: para permitir cookies e credenciais
 # CORS_ALLOW_CREDENTIALS = True
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,  # Defina quantos itens por página você quer (ex: 10)
+    # ... outras configurações do DRF
+}

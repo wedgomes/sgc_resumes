@@ -1,7 +1,7 @@
 // src/components/ResumeList.jsx
 import React, { useState, useEffect } from "react";
 import { fetchResumes, deleteResume } from "../services/api";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom'; // Adicionado useLocation e Link
 import {
   Button,
   List,
@@ -14,7 +14,9 @@ import {
   Alert,
   Paper,
   Box,
-  Divider // Importar Divider
+  Divider, // Importar Divider
+  Pagination, 
+  PaginationItem // Adicionado Pagination e PaginationItem
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person'; // Ícone para o Avatar
 
@@ -47,45 +49,69 @@ const formatGenericValue = (value, defaultValue = 'N/A') => {
 const presentDataStyle = { color: 'text.primary' }; // Usar cores do tema
 const missingDataStyle = { color: 'text.secondary', fontStyle: 'italic' }; // Usar cores do tema
 
+// --- CONSTANTE PARA ITENS POR PÁGINA ---
+// Este valor DEVE corresponder à configuração de page_size no seu backend Django.
+const ITEMS_PER_PAGE = 10; // Exemplo, ajuste conforme necessário
+
 // --- Componente Principal ---
 const ResumeList = () => {
   const [resumes, setResumes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const location = useLocation(); // Para ler os parâmetros da URL
   const navigate = useNavigate();
 
-  const loadResumes = async () => {
+  // Estado para paginação
+  const queryParams = new URLSearchParams(location.search);
+  const currentPage = parseInt(queryParams.get('page') || '1', 10); // Lê a página da URL ou default para 1
+  const [totalCount, setTotalCount] = useState(0); // Total de currículos
+
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
+  const loadResumes = async (pageToLoad) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetchResumes();
-      if (Array.isArray(response.data)) {
-        setResumes(response.data);
-      } else if (response.data && Array.isArray(response.data.results)) {
+      const response = await fetchResumes(pageToLoad); // Passa a página para a API
+
+        // Assumindo que a API paginada retorna um objeto com 'count' e 'results'
+      if (response.data && Array.isArray(response.data.results)) {
         setResumes(response.data.results);
+        setTotalCount(response.data.count);
+      } else if (Array.isArray(response.data)) {
+        // Fallback se a API retornar apenas uma lista (sem paginação no backend)
+        // Nesse caso, a paginação no frontend seria apenas visual para uma lista completa
+        console.warn("API não parece estar paginada, exibindo todos os resultados recebidos.");
+        setResumes(response.data);
+        setTotalCount(response.data.length); // A contagem total seria o tamanho da lista recebida
       } else {
         console.error("Formato de dados inesperado da API.", response.data);
         setError("Formato de dados inesperado da API.");
         setResumes([]);
+        setTotalCount(0);
       }
     } catch (err) {
       console.error("Erro ao buscar currículos: ", err);
-      setError("Falha ao carregar currículos. Verifique o console para mais detalhes.");
+      setError("Falha ao carregar currículos.");
       setResumes([]);
+      setTotalCount(0);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Efeito para carregar currículos quando a página na URL (currentPage) muda
   useEffect(() => {
-    loadResumes();
-  }, []);
+    loadResumes(currentPage);
+  }, [currentPage]); // Dispara quando currentPage (derivado da URL) muda
+
 
   const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este currículo?')) {
       try {
         await deleteResume(id);
-        loadResumes();
+        loadResumes(currentPage); // Recarrega a página atual
       } catch (localError) {
         console.error("Erro ao excluir currículo: ", localError);
         alert("Falha ao excluir currículo.");
@@ -196,6 +222,26 @@ const ResumeList = () => {
           Atualizar Lista
         </Button>
       </Box> */}
+
+      {/* Componente de Paginação */}
+      {totalPages > 1 && (
+        <Box display="flex" justifyContent="center" mt={4}>
+          <Pagination
+            page={currentPage}
+            count={totalPages}
+            color="primary"
+            renderItem={(item) => (
+              <PaginationItem
+                component={Link}
+                // Gera o link para a página correta, mantendo a rota base '/list'
+                to={`/list${item.page === 1 ? '' : `?page=${item.page}`}`}
+                {...item}
+              />
+            )}
+          />
+        </Box>
+      )}
+
     </Paper>
   );
 };
