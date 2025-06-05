@@ -1,5 +1,5 @@
 // src/components/ResumeList.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react"; // Adicionado useCallback
 import { fetchResumes, deleteResume } from "../services/api";
 import { useNavigate, useLocation, Link } from 'react-router-dom'; // Adicionado useLocation e Link
 import {
@@ -16,9 +16,12 @@ import {
   Box,
   Divider, // Importar Divider
   Pagination, 
-  PaginationItem // Adicionado Pagination e PaginationItem
+  PaginationItem, // Adicionado Pagination e PaginationItem
+  InputAdornment, // Adicionado TextField e InputAdornment
+  TextField
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person'; // Ícone para o Avatar
+import SearchIcon from '@mui/icons-material/Search'; // Ícone de busca
 
 // --- Mapas e Funções Auxiliares ---
 const statusDisplayMap = {
@@ -51,7 +54,7 @@ const missingDataStyle = { color: 'text.secondary', fontStyle: 'italic' }; // Us
 
 // --- CONSTANTE PARA ITENS POR PÁGINA ---
 // Este valor DEVE corresponder à configuração de page_size no seu backend Django.
-const ITEMS_PER_PAGE = 10; // Exemplo, ajuste conforme necessário
+const ITEMS_PER_PAGE = 3; // Exemplo, ajuste conforme necessário
 
 // --- Componente Principal ---
 const ResumeList = () => {
@@ -64,16 +67,22 @@ const ResumeList = () => {
 
   // Estado para paginação
   const queryParams = new URLSearchParams(location.search);
-  const currentPage = parseInt(queryParams.get('page') || '1', 10); // Lê a página da URL ou default para 1
+  const initialPage = parseInt(queryParams.get('page') || '1', 10); // Lê a página da URL ou default para 1
+  const initialSearch = queryParams.get('search') || '';
+
+  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [activeSearchQuery, setActiveSearchQuery] = useState(initialSearch); // Termo de busca efetivamente usado na API
+  const [searchInput, setSearchInput] = useState(initialSearch); // Conteúdo do campo de texto da busca
   const [totalCount, setTotalCount] = useState(0); // Total de currículos
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-  const loadResumes = async (pageToLoad) => {
+  // Função para carregar currículos da API
+  const loadResumes = useCallback(async (pageToLoad, currentSearch) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetchResumes(pageToLoad); // Passa a página para a API
+      const response = await fetchResumes(pageToLoad, currentSearch); // Passa a página para a API
 
         // Assumindo que a API paginada retorna um objeto com 'count' e 'results'
       if (response.data && Array.isArray(response.data.results)) {
@@ -99,19 +108,39 @@ const ResumeList = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []); // useCallback para estabilizar a função
 
   // Efeito para carregar currículos quando a página na URL (currentPage) muda
   useEffect(() => {
-    loadResumes(currentPage);
-  }, [currentPage]); // Dispara quando currentPage (derivado da URL) muda
+    // Atualiza a URL para refletir o estado atual de página e busca
+    const params = new URLSearchParams();
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    if (activeSearchQuery) params.set('search', activeSearchQuery);
+    navigate(`/list${params.toString() ? `?${params.toString()}` : ''}`, { replace: true });
+    
+    loadResumes(currentPage, activeSearchQuery);
+  }, [currentPage, activeSearchQuery, loadResumes, navigate]);
 
+  // Efeito para atualizar o estado interno se a URL mudar externamente (ex: botão voltar/avançar do navegador)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const pageFromUrl = parseInt(params.get('page') || '1', 10);
+    const searchFromUrl = params.get('search') || '';
+    
+    if (pageFromUrl !== currentPage) {
+        setCurrentPage(pageFromUrl);
+    }
+    if (searchFromUrl !== activeSearchQuery) {
+        setActiveSearchQuery(searchFromUrl);
+        setSearchInput(searchFromUrl); // Sincroniza o campo de input também
+    }
+  }, [location.search]); // Removido currentPage e activeSearchQuery das dependências para evitar loop
 
   const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este currículo?')) {
       try {
         await deleteResume(id);
-        loadResumes(currentPage); // Recarrega a página atual
+        loadResumes(currentPage, activeSearchQuery); // Recarrega a página atual
       } catch (localError) {
         console.error("Erro ao excluir currículo: ", localError);
         alert("Falha ao excluir currículo.");
@@ -123,6 +152,26 @@ const ResumeList = () => {
     navigate(`/edit/${id}`);
   };
 
+  // Manipulador para submeter a busca
+  const handleSearchSubmit = (event) => {
+    event.preventDefault(); // Previne recarregamento da página se estiver em um form
+    setCurrentPage(1); // Sempre volta para a página 1 ao fazer uma nova busca
+    setActiveSearchQuery(searchInput);
+  };
+  
+  // Função para construir links de paginação preservando o filtro de busca
+  const buildPageLink = (pageNumber) => {
+    const params = new URLSearchParams();
+    if (activeSearchQuery) { // Usa activeSearchQuery para os links de paginação
+      params.set('search', activeSearchQuery);
+    }
+    if (pageNumber > 1) {
+      params.set('page', pageNumber.toString());
+    }
+    const queryString = params.toString();
+    return `/list${queryString ? `?${queryString}` : ''}`;
+  };
+
   if (isLoading) return <Box display="flex" justifyContent="center" my={4}><CircularProgress /></Box>;
   if (error) return <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>;
 
@@ -131,6 +180,38 @@ const ResumeList = () => {
       <Typography variant="h4" component="h2" gutterBottom sx={{ textAlign: 'center', mb:3 }}>
         Lista de Currículos
       </Typography>
+
+      {/* Formulário de Busca */}
+      <Box component="form" onSubmit={handleSearchSubmit} sx={{ display: 'flex', gap: 1, mb: 3, alignItems: 'center' }}>
+        <TextField
+          // label="Pesquisar Currículos"
+          variant="outlined"
+          fullWidth
+          size="small"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          // sx={{ padding: "0px", border: "none", marginBottom: "0px"}}
+           InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Button type="submit" variant="contained" color="primary" size="small" sx={{py: '15px'}}>
+          Buscar
+        </Button>
+        {activeSearchQuery && (
+            <Button variant="outlined" size="small" onClick={() => { setSearchInput(''); setActiveSearchQuery(''); setCurrentPage(1);}}>
+                Limpar
+            </Button>
+        )}
+      </Box>
+
+      {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
+      {isLoading && <Box display="flex" justifyContent="center" my={2}><CircularProgress size={24} /></Box>} {/* Loading menor para atualizações */}
+
       {resumes.length === 0 && !isLoading && <Typography sx={{textAlign: 'center'}}>Nenhum currículo cadastrado.</Typography>}
       
       {/* Lista principal com largura total */}
