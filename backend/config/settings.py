@@ -146,6 +146,6 @@ CORS_ALLOWED_ORIGINS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,  # Defina quantos itens por página você quer (ex: 10)
+    'PAGE_SIZE': 3,  # Defina quantos itens por página você quer (ex: 10)
     # ... outras configurações do DRF
 }
